@@ -19,7 +19,8 @@ function Install-Gateway([string] $gwPath)
 function Register-Gateway([string] $key)
 {
     Write-Host "Start to register gateway with key: $key"
-    $cmd = "C:\Program Files\Microsoft Intergration Runtime\4.0\Shared\diacmd.exe"
+    $cmd = Get-CmdFilePath
+    Write-Host "$cmd"
     Start-Process $cmd "-k $key" -Wait
     Write-Host "Succeed to register gateway"
 
