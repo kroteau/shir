@@ -24,8 +24,6 @@ function Register-Gateway([string] $key)
     Write-Host "Succeed to register gateway"
 }
 
-}
-
 function Check-WhetherGatewayInstalled([string]$name)
 {
     $installedSoftwares = Get-ChildItem "hklm:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
