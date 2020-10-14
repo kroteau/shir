@@ -19,9 +19,8 @@ function Install-Gateway([string] $gwPath)
 function Register-Gateway([string] $key)
 {
     Write-Host "Start to register gateway with key: $key"
-    $cmd = Get-CmdFilePath
-    Write-Host "$cmd"
-    Start-Process $cmd "-k $key" -Wait
+    Start-Process "C:\Program Files\Microsoft Integration Runtime\4.0\Shared\dmgcmd.xe" -RegisterNewNode "$key" "$env:COMPUTERNAME"
+    Start-Process "C:\Program Files\Microsoft Integration Runtime\4.0\Shared\dmgcmd.xe" -EnableRemoteAccess 8060
     Write-Host "Succeed to register gateway"
 
 }
@@ -44,37 +43,8 @@ function Check-WhetherGatewayInstalled([string]$name)
 
 function UnInstall-Gateway()
 {
-    $installed = $false
-    if (Check-WhetherGatewayInstalled("Microsoft Integration Runtime"))
-    {
-        [void](Get-WmiObject -Class Win32_Product -Filter "Name='Microsoft Integration Runtime Preview' or Name='Microsoft Integration Runtime'" -ComputerName $env:COMPUTERNAME).Uninstall()
-        $installed = $true
-    }
-
-    if (Check-WhetherGatewayInstalled("Microsoft Integration Runtime"))
-    {
-        [void](Get-WmiObject -Class Win32_Product -Filter "Name='Microsoft Integration Runtime Preview' or Name='Microsoft Integration Runtime'" -ComputerName $env:COMPUTERNAME).Uninstall()
-        $installed = $true
-    }
-
-    if ($installed -eq $false)
-    {
-        Write-Host "Microsoft Integration Runtime Preview is not installed."
-        return
-    }
-
+    [void](Get-WmiObject -Class Win32_Product -Filter "Name='Microsoft Integration Runtime Preview' or Name='Microsoft Integration Runtime'" -ComputerName $env:COMPUTERNAME).Uninstall()
     Write-Host "Microsoft Integration Runtime has been uninstalled from this machine."
-}
-
-function Get-CmdFilePath()
-{
-    $filePath = Get-ItemPropertyValue "hklm:\Software\Microsoft\DataTransfer\DataManagementGateway\ConfigurationManager" "DiacmdPath"
-    if ([string]::IsNullOrEmpty($filePath))
-    {
-        throw "Get-InstalledFilePath: Cannot find installed File Path"
-    }
-
-    return $filePath
 }
 
 function Validate-Input([string]$path, [string]$key)
