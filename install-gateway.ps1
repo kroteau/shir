@@ -19,9 +19,10 @@ function Install-Gateway([string] $gwPath)
 function Register-Gateway([string] $key)
 {
     Write-Host "Start to register gateway with key: $key"
-    Start-Process "C:\Program Files\Microsoft Integration Runtime\4.0\Shared\dmgcmd.exe" -RegisterNewNode "$key" "$env:COMPUTERNAME"
-    Start-Process "C:\Program Files\Microsoft Integration Runtime\4.0\Shared\dmgcmd.exe" -EnableRemoteAccess 8060
+    & "C:\Program Files\Microsoft Integration Runtime\4.0\Shared\dmgcmd.exe" @("-RegisterNewNode", "$key", "$env:COMPUTERNAME")
+    & "C:\Program Files\Microsoft Integration Runtime\4.0\Shared\dmgcmd.exe" @("-EnableRemoteAccess", "8060")
     Write-Host "Succeed to register gateway"
+}
 
 }
 
