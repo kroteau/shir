@@ -27,7 +27,7 @@ function Install-JRE([string] $source)
     $text | Set-Content "$workd\jreinstall.cfg"
 
 #download executable, this is the small online installer
-    $source = "https://javadl.oracle.com/webapps/download/AutoDL?BundleId=245477_4d5417147a92418ea8b615e228bb6935"
+    $source = $jresource
     $destination = "$workd\jreInstall.exe"
     $client = New-Object System.Net.WebClient
     $client.DownloadFile($source, $destination)
