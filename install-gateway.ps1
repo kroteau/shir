@@ -42,6 +42,15 @@ function Install-JRE([string] $source)
     rm -Force $workd\jre*
 }
 
+function Install-VcRedist()
+{
+  $workd = "c:\temp"
+  $destination = "$workd\vcredist_x64.exe"
+  $client = New-Object System.Net.WebClient
+  $client.DownloadFile("https://download.microsoft.com/download/3/2/2/3224B87F-CFA0-4E70-BDA3-3DE650EFEBA5/vcredist_x64.exe", $destination)
+  Start-Process -FilePath "$workd\vcredist_x64.exe" -ArgumentList "/Q" -Wait
+}
+
 function Install-Gateway([string] $gwPath)
 {
 # uninstall any existing gateway
@@ -112,6 +121,7 @@ If (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
 
 Validate-Input $path $authKey
 
+Install-VcRedist
 Install-JRE $jresource
 Install-Gateway $path
 Register-Gateway $authKey
