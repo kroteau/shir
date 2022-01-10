@@ -2,7 +2,7 @@
 #### PS D:\GitHub> .\InstallGatewayOnLocalMachine.ps1 E:\shared\bugbash\IntegrationRuntime.msi <key>
 ####
 
-param([string]$path, [string]$authKey, [string]$jresource = "https://javadl.oracle.com/webapps/download/AutoDL?BundleId=245477_4d5417147a92418ea8b615e228bb6935") # JRE 8u311
+param([string]$path, [string]$authKey, [string]$jresource = "https://javadl.oracle.com/webapps/download/AutoDL?BundleId=245479_4d5417147a92418ea8b615e228bb6935") # JRE 8u311
 
 function Install-JRE([string] $source)
 {
