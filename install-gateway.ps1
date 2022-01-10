@@ -50,9 +50,9 @@ function Install-VcRedist()
       New-Item -Path $workd -ItemType directory
     }
   $destination = "$workd\vcredist_x64.exe"
-  $client = New-Object System.Net.WebClient
-  $client.DownloadFile("https://download.microsoft.com/download/3/2/2/3224B87F-CFA0-4E70-BDA3-3DE650EFEBA5/vcredist_x64.exe", $destination)
-  Start-Process -FilePath "$workd\vcredist_x64.exe" -ArgumentList "/Q" -Wait
+    $client = New-Object System.Net.WebClient
+    $client.DownloadFile("https://download.microsoft.com/download/3/2/2/3224B87F-CFA0-4E70-BDA3-3DE650EFEBA5/vcredist_x64.exe", $destination)
+    Start-Process -FilePath "$workd\vcredist_x64.exe" -ArgumentList "/Q" -Wait
 }
 
 function Install-Gateway([string] $gwPath)
