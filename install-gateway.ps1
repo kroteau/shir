@@ -45,6 +45,10 @@ function Install-JRE([string] $source)
 function Install-VcRedist()
 {
   $workd = "c:\temp"
+    If (!(Test-Path -Path $workd -PathType Container))
+    {
+      New-Item -Path $workd -ItemType directory
+    }
   $destination = "$workd\vcredist_x64.exe"
   $client = New-Object System.Net.WebClient
   $client.DownloadFile("https://download.microsoft.com/download/3/2/2/3224B87F-CFA0-4E70-BDA3-3DE650EFEBA5/vcredist_x64.exe", $destination)
