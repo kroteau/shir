@@ -2,7 +2,7 @@
 #### PS D:\GitHub> .\InstallGatewayOnLocalMachine.ps1 E:\shared\bugbash\IntegrationRuntime.msi <key>
 ####
 
-param([string]$path, [string]$authKey, [string]$jresource = "https://javadl.oracle.com/webapps/download/AutoDL?BundleId=245477_4d5417147a92418ea8b615e228bb6935") # JRE 8u311
+param([string]$path, [string]$authKey, [string]$jresource = "https://javadl.oracle.com/webapps/download/AutoDL?BundleId=245479_4d5417147a92418ea8b615e228bb6935") # JRE 8u311
 
 function Install-JRE([string] $source)
 {
@@ -27,7 +27,7 @@ function Install-JRE([string] $source)
     $text | Set-Content "$workd\jreinstall.cfg"
 
 #download executable, this is the small online installer
-    $source = "https://javadl.oracle.com/webapps/download/AutoDL?BundleId=245477_4d5417147a92418ea8b615e228bb6935"
+    $source = $jresource
     $destination = "$workd\jreInstall.exe"
     $client = New-Object System.Net.WebClient
     $client.DownloadFile($source, $destination)
@@ -40,6 +40,19 @@ function Install-JRE([string] $source)
 
 # Remove the installer
     rm -Force $workd\jre*
+}
+
+function Install-VcRedist()
+{
+  $workd = "c:\temp"
+    If (!(Test-Path -Path $workd -PathType Container))
+    {
+      New-Item -Path $workd -ItemType directory
+    }
+  $destination = "$workd\vcredist_x64.exe"
+    $client = New-Object System.Net.WebClient
+    $client.DownloadFile("https://download.microsoft.com/download/3/2/2/3224B87F-CFA0-4E70-BDA3-3DE650EFEBA5/vcredist_x64.exe", $destination)
+    Start-Process -FilePath "$workd\vcredist_x64.exe" -ArgumentList "/Q" -Wait
 }
 
 function Install-Gateway([string] $gwPath)
@@ -112,6 +125,7 @@ If (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
 
 Validate-Input $path $authKey
 
+Install-VcRedist
 Install-JRE $jresource
 Install-Gateway $path
 Register-Gateway $authKey
