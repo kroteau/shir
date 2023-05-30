@@ -16,6 +16,7 @@ param(
   [string]$authKey,
 
   [string]$jresource = 'https://javadl.oracle.com/webapps/download/AutoDL?BundleId=245479_4d5417147a92418ea8b615e228bb6935', # JRE 8u311
+  [int]$jreinstall_timeout = 5, # minutes
 
   [string]$irsource = 'https://www.microsoft.com/en-us/download/confirmation.aspx?id=39717', # Integration Runtime Download Page
   [string]$irsource_filter = 'https://download.microsoft.com*msi',
@@ -53,7 +54,7 @@ function Download-File([string]$uri, [string]$workd=$script:workd, [string]$msdl
   return $filename
 }
 
-function Install-JRE([string]$jresource = $script:jresource, [string]$workd = $script:workd)
+function Install-JRE([string]$jresource = $script:jresource, [string]$workd = $script:workd, [int]$jreinstall_timeout = $script:jreinstall_timeout)
 {
 # Download and silent install Java Runtime Environement
 # create config file for silent install
@@ -72,11 +73,20 @@ function Install-JRE([string]$jresource = $script:jresource, [string]$workd = $s
   write-Verbose "Install JRE from $filename"
   $process = Start-Process -FilePath "$filename" -ArgumentList "INSTALLCFG=`"$workd\jreinstall.cfg`"" -Wait -PassThru
 
+# Set a timeout for jreinstall to finish
+  $timeout = (Get-Date).AddMinutes($jreinstall_timeout)
+
 # Wait for the installation to finish
   Write-Host 'Waiting for jreinstall.exe to finish...'
-  while ((Get-Process jreinstall -ErrorAction SilentlyContinue))
+  while ((Get-Process jreinstall -ErrorAction SilentlyContinue) -and ((Get-Date) -le $timeout))
   {
     Start-Sleep -Seconds 10
+  }
+
+# Try to force-kill jreinstall to prevent further install conflicts
+  if (Get-Process jreinstall -ErrorAction SilentlyContinue)
+  {
+    Stop-Process -Name jreinstall -Force
   }
 
 # Remove the installer
@@ -108,7 +118,7 @@ function Install-Gateway([string]$filename = $script:path, [string]$workd = $scr
   $process = Start-Process -FilePath "msiexec.exe" -ArgumentList "/i $filename /quiet /passive /L*v $workd\ir.log" -Wait -PassThru
   Start-Sleep -Seconds 30
 
-  Write-Host "Gateway installer finished with exitCode: $($process.exitcode))"
+  Write-Host "Gateway installer finished with exitCode: $($process.exitcode)"
 
   Print-ExecInfo $process
 }
@@ -158,9 +168,18 @@ function Check-WhetherGatewayInstalled([string]$name)
 
 function UnInstall-Gateway()
 {
-  Write-Verbose "Calling gwmi.Uninstall() for `"Microsoft Integration Runtime*`" products"
-  [void](Get-WmiObject -Class Win32_Product -Filter "Name LIKE 'Microsoft Integration Runtime%'" -ComputerName .).Uninstall()
-    Write-Host "Microsoft Integration Runtime has been uninstalled from this machine."
+  $product = Get-WmiObject -Class Win32_Product -Filter "Name LIKE 'Microsoft Integration Runtime%'" -ComputerName . -ErrorAction SilentlyContinue
+  if ($product)
+  {
+    Write-Verbose "Found Microsoft Integration Runtime"
+    Write-Verbose "$($product | Format-Table Name, Version, IdentifyingNumber)"
+    [void]$product.Uninstall()
+    Write-Host "Microsoft Integration Runtime $($product.Version) has been uninstalled."
+  }
+  else
+  {
+    Write-Host "Microsoft Integration Runtime not found."
+  }
 }
 
 function Print-FileInfo($filename)
@@ -217,3 +236,6 @@ if ($PSCmdlet.ParameterSetName -eq 'LatestVersion')
 }
 Install-Gateway $path
 Register-Gateway $authKey
+
+# List working dir before exit for logfile names
+Write-Verbose "$(Get-ChildItem $workd|out-string)"
