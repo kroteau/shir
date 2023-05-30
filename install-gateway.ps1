@@ -128,7 +128,7 @@ function Register-Gateway([string] $key)
   {
     0
       {
-        Write-Host "Succeed to register the gateway"
+        Write-Host "Registration with the gateway was successul"
       }
     $null
       {
