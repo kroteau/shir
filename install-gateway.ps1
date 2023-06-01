@@ -1,19 +1,22 @@
 #### Here is the usage doc:
-#### PS D:\GitHub> .\InstallGatewayOnLocalMachine.ps1 E:\shared\bugbash\IntegrationRuntime.msi <key> # defined version mode (backwards compatibility)
-#### PS D:\GitHub> .\InstallGatewayOnLocalMachine.ps1 <key> # latest version mode
-#### PS D:\GitHub> .\InstallGatewayOnLocalMachine.ps1 -authKey <key> -path E:\shared\bugbash\IntegrationRuntime.msi # named parameters (non-ordered)
+#### PS D:\GitHub> .\InstallGatewayOnLocalMachine.ps1 E:\shared\bugbash\IntegrationRuntime.msi <key>                # "Compatibility" mode, for backwards compatibility
+#### PS D:\GitHub> .\InstallGatewayOnLocalMachine.ps1 -authKey <key> -path E:\shared\bugbash\IntegrationRuntime.msi # also possible to call in named (non-ordered) way
+#### PS D:\GitHub> .\InstallGatewayOnLocalMachine.ps1 -authKey <key>                                                # get "Latest" mode, download IR from MS download
 ####
-[CmdletBinding(DefaultParameterSetName = 'LatestVersion')]
+[CmdletBinding(DefaultParameterSetName = 'Compatibility')]
 
 param(
-  [Parameter(ParameterSetName = 'DefinedVersion', Position = 0, Mandatory)]
+  [Parameter(ParameterSetName = 'Compatibility', Position = 0, Mandatory)]
   [ValidateScript({ Test-Path $_ -PathType Leaf })]
   [string]$path,
 
-  [Parameter(ParameterSetName = 'DefinedVersion', Position = 1, Mandatory)]
-  [Parameter(ParameterSetName = 'LatestVersion', Position = 0, Mandatory)]
+  [Parameter(ParameterSetName = 'Latest', Position = 0, Mandatory)]
   [ValidateNotNullOrEmpty()]
   [string]$authKey,
+
+  [Parameter(ParameterSetName = 'Compatibility', Position = 1, Mandatory)]
+  [ValidateNotNullOrEmpty()]
+  [string]$authKey1, # workaround for compatibility (path+key) input
 
   [string]$jresource = 'https://javadl.oracle.com/webapps/download/AutoDL?BundleId=245479_4d5417147a92418ea8b615e228bb6935', # JRE 8u311
   [int]$jreinstall_timeout = 5, # minutes
@@ -207,32 +210,60 @@ function Print-ExecInfo($processinfo)
   Write-Host "$($process -join '; ')"
 }
 
+if ($PSCmdlet.ParameterSetName -eq 'Compatibility')
+{
+}
+
 # Script starting parameters (including default)
-$PsBoundParameters.path = $path
-$PsBoundParameters.workd = $workd
-$PsBoundParameters.authKey = $authKey
-$PsBoundParameters.parameterSetName = $PSCmdlet.ParameterSetName
-Write-Verbose "Parameters:$($PsBoundParameters | Out-String)"
+$CommandName = $PSCmdlet.MyInvocation.InvocationName # get the script own name
+$ParameterList = (Get-Command -Name $CommandName).Parameters # Get the list of parameters for the script
+$inputParams = foreach ($Parameter in $ParameterList) # extract parameter=value
+{
+  Get-Variable -Name $Parameter.Values.Name -ErrorAction SilentlyContinue | Select-object Name,Value
+}
+$runreport = @(
+  "ParameterSetName:  $($PSCmdlet.ParameterSetName)",
+  "ParameterCount:    $($PSBoundParameters.Count)",
+  "PsBoundParameters: $($PsBoundParameters.getEnumerator())",
+  "Script parameters (and their defaults):$($inputParams|Out-String)"
+)
+Write-Verbose "`n$($runreport -join "`n")"
 
 If (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(`
       [Security.Principal.WindowsBuiltInRole] "Administrator"))
 {
-  Write-Warning "You do not have Administrator rights to run this script!`nPlease re-run this script as an Administrator!"
-    Break
+  Write-Error -Category PermissionDenied -Message "You do not have Administrator rights to run this script!`n Please re-run this script as an Administrator!"
+  Break
 }
 
-# Check if work directory exists if not create it
-If (!(Test-Path -Path $workd -PathType Container))
+# Working directory tests/creation
+If (-NOT (Test-Path -Path $workd -PathType Container))
 {
-  New-Item -Path $workd -ItemType directory
+  New-Item -Path $workd -ItemType Directory | Out-Null
+  if ($?)
+  {
+    Write-Host "Created directory: $workd"
+  }
+  else
+  {
+    Write-Host "Failed to create directory: $workd"
+  }
 }
 
 Install-VcRedist
 Install-JRE
-if ($PSCmdlet.ParameterSetName -eq 'LatestVersion')
+switch ($PSCmdlet.ParameterSetName)
 {
-  # if path does not exist or not set falling back to IR remote install / latest version
-  $path = Download-File -uri $irsource -msdl_filter $irsource_filter
+  'Latest'
+  {
+    # if path does not exist or not set falling back to IR remote install / latest version
+    $path = Download-File -uri $irsource -msdl_filter $irsource_filter
+  }
+  'Compatibility'
+  {
+    # Compatibility mode uses positional parameter w/ a different name because of PS param handling limitations
+    $authKey = $authKey1
+  }
 }
 Install-Gateway $path
 Register-Gateway $authKey
