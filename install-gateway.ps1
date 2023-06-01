@@ -1,5 +1,5 @@
 #### Here is the usage doc:
-#### PS D:\GitHub> .\InstallGatewayOnLocalMachine.ps1 E:\shared\bugbash\IntegrationRuntime.msi <key>                # "Compatibility" mode, for backwards compatibility
+#### PS D:\GitHub> .\InstallGatewayOnLocalMachine.ps1 E:\shared\bugbash\IntegrationRuntime.msi <key>                # Backwards Compatibility mode
 #### PS D:\GitHub> .\InstallGatewayOnLocalMachine.ps1 -authKey <key> -path E:\shared\bugbash\IntegrationRuntime.msi # also possible to call in named (non-ordered) way
 #### PS D:\GitHub> .\InstallGatewayOnLocalMachine.ps1 -authKey <key>                                                # get "Latest" mode, download IR from MS download
 ####
@@ -140,17 +140,17 @@ function Register-Gateway([string] $key)
   switch($p1.exitCode + $p2.exitCode)
   {
     0
-      {
-        Write-Host "Registration with the gateway was successul"
-      }
+    {
+      Write-Host "Registration with the gateway was successul"
+    }
     $null
-      {
-        Write-Host "Register gateway impossible, executable not found"
-      }
+    {
+      Write-Host "Register gateway impossible, executable not found"
+    }
     default
-      {
-        Write-Host "Gateway registration exit codes $($p1.exitCode)] [$($p2.exitCode)]"
-      }
+    {
+      Write-Host "Gateway registration exit codes $($p1.exitCode)] [$($p2.exitCode)]"
+    }
   }
 }
 
@@ -174,8 +174,7 @@ function UnInstall-Gateway()
   $product = Get-WmiObject -Class Win32_Product -Filter "Name LIKE 'Microsoft Integration Runtime%'" -ComputerName . -ErrorAction SilentlyContinue
   if ($product)
   {
-    Write-Verbose "Found Microsoft Integration Runtime"
-    Write-Verbose "$($product | Format-Table Name, Version, IdentifyingNumber)"
+    Write-Verbose "Found Microsoft Integration Runtime`n$($product | Format-Table Name, Version, IdentifyingNumber)"
     [void]$product.Uninstall()
     Write-Host "Microsoft Integration Runtime $($product.Version) has been uninstalled."
   }
@@ -210,10 +209,6 @@ function Print-ExecInfo($processinfo)
   Write-Host "$($process -join '; ')"
 }
 
-if ($PSCmdlet.ParameterSetName -eq 'Compatibility')
-{
-}
-
 # Script starting parameters (including default)
 $CommandName = $PSCmdlet.MyInvocation.InvocationName # get the script own name
 $ParameterList = (Get-Command -Name $CommandName).Parameters # Get the list of parameters for the script
@@ -240,14 +235,14 @@ If (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
 If (-NOT (Test-Path -Path $workd -PathType Container))
 {
   New-Item -Path $workd -ItemType Directory | Out-Null
-  if ($?)
-  {
-    Write-Host "Created directory: $workd"
-  }
-  else
-  {
-    Write-Host "Failed to create directory: $workd"
-  }
+    if ($?)
+    {
+      Write-Host "Created directory: $workd"
+    }
+    else
+    {
+      Write-Host "Failed to create directory: $workd"
+    }
 }
 
 Install-VcRedist
@@ -269,4 +264,4 @@ Install-Gateway $path
 Register-Gateway $authKey
 
 # List working dir before exit for logfile names
-Write-Verbose "$(Get-ChildItem $workd|out-string)"
+Write-Verbose "$((Get-ChildItem $workd|Out-String -With 100).Trim())"
