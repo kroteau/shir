@@ -83,7 +83,7 @@ function Install-JRE([string]$jresource = $script:jresource, [string]$workd = $s
   Write-Host 'Waiting for jreinstall.exe to finish...'
   while ((Get-Process jreinstall -ErrorAction SilentlyContinue) -and ((Get-Date) -le $timeout))
   {
-    Start-Sleep -Seconds 10
+    Start-Sleep -Seconds 5
   }
 
 # Try to force-kill jreinstall to prevent further install conflicts
@@ -105,7 +105,7 @@ function Install-VcRedist([string]$vcrsource = $script:vcrsource, [string]$vcrso
   Write-Verbose "Installing VcRedist from $filename"
   $process = Start-Process -FilePath "$filename" -ArgumentList "/Q /log $workd\vcredist.log" -Wait -PassThru
   
-  Start-Sleep 2
+  Start-Sleep -Seconds 5
   Print-ExecInfo $process
 }
 
@@ -119,7 +119,7 @@ function Install-Gateway([string]$filename = $script:path, [string]$workd = $scr
   Write-Verbose "Installing Gateway from $filename"
   
   $process = Start-Process -FilePath "msiexec.exe" -ArgumentList "/i $filename /quiet /passive /L*v $workd\ir.log" -Wait -PassThru
-  Start-Sleep -Seconds 30
+  Start-Sleep -Seconds 5
 
   Write-Host "Gateway installer finished with exitCode: $($process.exitcode)"
 
@@ -264,4 +264,4 @@ Install-Gateway $path
 Register-Gateway $authKey
 
 # List working dir before exit for logfile names
-Write-Verbose "$((Get-ChildItem $workd|Out-String -With 100).Trim())"
+Write-Verbose "$((Get-ChildItem $workd|Out-String -Width 100).Trim())"
