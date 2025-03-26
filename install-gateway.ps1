@@ -21,24 +21,40 @@ param(
   [string]$jresource = 'https://javadl.oracle.com/webapps/download/AutoDL?BundleId=245479_4d5417147a92418ea8b615e228bb6935', # JRE 8u311
   [int]$jreinstall_timeout = 5, # minutes
 
-  [string]$irsource = 'https://www.microsoft.com/en-us/download/confirmation.aspx?id=39717', # Integration Runtime Download Page
-  [string]$irsource_filter = 'https://download.microsoft.com*msi',
+  [string]$msdl_pattern = '<script>window\.__DLCDetails__=(.*?)</script>',
 
-  [string]$vcrsource = 'https://www.microsoft.com/en-us/download/confirmation.aspx?id=26999', # Microsoft Visual C++ 2010 Redistributable (Service Pack 1)
-  [string]$vcrsource_filter = 'https://download.microsoft.com*vcredist_x64.exe',
-  # original url # 'https://download.microsoft.com/download/3/2/2/3224B87F-CFA0-4E70-BDA3-3DE650EFEBA5/vcredist_x64.exe'
+  # Download page https://www.microsoft.com/en-us/download/details.aspx?id=39717
+  # Latest file https://go.microsoft.com/fwlink/?linkid=839822 (file only)
+  [string]$irsource = 'https://www.microsoft.com/en-us/download/details.aspx?id=39717', # Microsoft Integration Runtime
+  [string]$irsource_filter = 'https://download.microsoft.com*msi',
+  [string]$irsource_outfile = $null,
+
+  [string]$vcrsource = 'https://www.microsoft.com/en-us/download/details.aspx?id=26999', # Microsoft Visual C++ 2010 Redistributable (Service Pack 1)
+  [string]$vcrsource_filter = 'https://download.microsoft.com*x64.exe',
+  [string]$vcrsource_outfile = $null,
   
   [string]$workd = 'c:\temp' # working directory path
 )
+# Suppress progress display for Invoke-WebRequest to improve performance
+$global:ProgressPreference = 'SilentlyContinue'
 
-function Download-File([string]$uri, [string]$workd=$script:workd, [string]$msdl_filter, [string]$outFile) {
-  # if the download is a microsoft download page - parse it for file permalinks
+function Download-File([string]$uri, [string]$workd=$script:workd, [string]$msdl_pattern=$script:msdl_pattern, [string]$msdl_filter, [string]$outFile) {
+  # if the download is a microsoft download page - parse it for direct file download links
   if (-not [string]::IsNullOrEmpty($msdl_filter)) {
     Write-Verbose "Searching for `"$msdl_filter`" on download page $uri"
     $page = Invoke-WebRequest -Uri $uri -UseBasicParsing
-    $uri = $page.Links.Where({$_.href -like $msdl_filter}).href | Select-Object -Unique -First 1
+
+    $pageMatch = [regex]::Match($page.Content, $msdl_pattern)
+
+    if ($pageMatch.Success) {
+      $jsonObject = $pageMatch.Groups[1].Value | ConvertFrom-Json
+
+      $uri = $jsonObject.dlcDetailsView.downloadFile |
+        Where-Object { $_.url -like $msdl_filter } |
+        Select-Object -ExpandProperty url -Unique -First 1
+    }
   }
-  
+
   # Setting output filename 
   if (!$outFile) {
     $outFile = [System.Net.WebUtility]::UrlDecode($uri.Split('/')[-1])
@@ -97,8 +113,8 @@ function Install-JRE([string]$jresource = $script:jresource, [string]$workd = $s
   rm -Force $workd\jre*
 }
 
-function Install-VcRedist([string]$vcrsource = $script:vcrsource, [string]$vcrsource_filter = $script:vcrsource_filter) {
-  $filename = Download-File -uri $vcrsource -msdl_filter $vcrsource_filter
+function Install-VcRedist([string]$vcrsource = $script:vcrsource, [string]$vcrsource_filter = $script:vcrsource_filter, [string]$vcrsource_outfile=$script:vcrsource_outfile) {
+  $filename = Download-File -uri $vcrsource -msdl_filter $vcrsource_filter -outFile $vcrsource_outfile
 
   Write-Verbose "Installing VcRedist from $filename"
   
@@ -204,7 +220,7 @@ Install-JRE
 switch ($PSCmdlet.ParameterSetName) {
   'Latest' {
     # if path does not exist or not set falling back to IR remote install / latest version
-    $path = Download-File -uri $irsource -msdl_filter $irsource_filter
+    $path = Download-File -uri $irsource -msdl_filter $irsource_filter -outFile $irsource_outfile
   }
   'Compatibility' {
     # Compatibility mode uses positional parameter w/ a different name because of PS param handling limitations
